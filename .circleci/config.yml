@@ -1,0 +1,37 @@
+version: 2.1
+jobs:
+  test:
+    docker:
+      - image: circleci/golang:1
+
+    working_directory: /go/src/github.com/VanMoof/gopenapi
+
+    environment: # environment variables for the build itself
+      GO111MODULE: "on"
+
+    steps:
+      - checkout
+      - restore_cache: # restores saved cache if no changes are detected since last run
+          keys:
+            - v1-pkg-cache
+      - run:
+          name: Downloading project dependecies
+          command: |
+            go mod download
+            go get -u github.com/jstemmer/go-junit-report
+      - run:
+          name: Run unit tests
+          command: |
+            mkdir -p test-results/go-test
+            go test -v -cover ./... 2>&1 | tee testreport; cat testreport | /go/bin/go-junit-report > test-results/go-test/results.xml
+      - save_cache:
+          key: v1-pkg-cache
+          paths:
+            - /go/pkg
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test
+

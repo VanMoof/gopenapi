@@ -1,0 +1,119 @@
+= GOpenAPI
+
+image:https://circleci.com/gh/VanMoof/gopenapi.svg?style=svg&circle-token=3af6268b2c8da20c22632261882d358e3027c045["CircleCI", link="https://circleci.com/gh/VanMoof/gopenapi"]
+
+An OpenAPI utility for Go.
+This project aims to bring support of OpenAPI v3.
+
+== Usage
+
+```bash
+$ gopenapi [command] [arg]
+```
+
+=== Generating Specifications From Code
+
+```bash
+gopenapi generate spec [optional path] [flags]
+```
+
+==== Args
+
+```bash
+[optional path]   Optionally specify the directory in which to search. Accepts absolute paths. Relative paths are relative to the current directory. (default ".")
+```
+
+==== Flags
+
+```bash
+-f, --format string   The format of the output. May be json or yaml (default "json")
+-o, --output string   Where the output should be directed. May be '-' (stdout) or a path to a file (default "-")
+```
+
+==== Format
+
+Code is annotated with different types of comments that help generate the spec.
+
+The comment contains a keyword that specifies the type of the OpenAPI element.
+
+The content of the comment should be a valid YAML OpenAPI element
+
+===== Info
+
+Begin a comment with `gopenapi:info` and follow up with a YAML representation of the OpenAPI Info element.
+
+This element is then set to the `info` property of the specification.
+
+```go
+package main
+
+/*
+gopenapi:info
+title: The App Name
+version: 1.0
+description: |-
+  The app description
+contact:
+  name: Jimbob Jones
+  url: https://jones.com
+  email: jimbob@jones.com
+license:
+  name: Apache 2.0
+  url: https://www.apache.org/licenses/LICENSE-2.0.html
+*/
+func main() {
+}
+```
+
+===== Path
+
+Begin a comment with `gopenapi:path` and follow up with a YAML representation of the OpenAPI PathItem element.
+
+This element is then appended to the `paths` property of the specification.
+
+```go
+package main
+
+/*
+gopenapi:path
+/ping:
+  get:
+    responses:
+      200:
+        description: |-
+          The default response of "ping"
+        content:
+          text/plain:
+            example: pong
+*/
+func ControllerFunc() {
+}
+```
+
+===== Schema Object
+
+Annotate a struct with a `gopenapi:objectSchema`.
+
+The generated ObjectSchema element will be appended to the `components.schemas` property fo the specification.
+
+```go
+//gopenapi:objectSchema
+type RootModel struct {
+	IntField    int64  `json:"intField"`
+	StringField string `json:"stringField"`
+}
+
+// This struct will be ignored
+type IgnoredModel struct {
+}
+
+//gopenapi:objectSchema
+type AliasedModels []*AliasedModel // This alias will appear as a schema too
+
+//gopenapi:objectSchema
+type AliasedModel struct {
+	IgnoredField string `json:"-"` // This field will be ignored
+	TimeField    time.Time
+}
+
+```
