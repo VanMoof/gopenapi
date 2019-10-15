@@ -90,11 +90,11 @@ func ControllerFunc() {
 }
 ```
 
-===== Schema Object
+===== Object Schema
 
 Annotate a struct with a `gopenapi:objectSchema`.
 
-The generated ObjectSchema element will be appended to the `components.schemas` property fo the specification.
+The generated ObjectSchema element will be appended to the `components.schemas` property of the specification.
 
 ```go
 //gopenapi:objectSchema
@@ -117,3 +117,23 @@ type AliasedModel struct {
 }
 
 ```
+
+===== Parameter
+
+Annotate a `const` or a `var` with a `gopenapi:parameter`.
+
+The annotated field will be appended to the `components.parameters` property of the specification.
+
+```go
+/*
+gopenapi:parameter
+in: path
+required: true
+content:
+  text/plain:
+    example: 30
+*/
+const Limit = "limit"
+```
+
+The name of the field (`Limit`) will be the parameter identifier and the value of the field (`limit`) will be the name of the parameter.

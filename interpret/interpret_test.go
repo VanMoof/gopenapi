@@ -41,6 +41,7 @@ func TestASTInterpreter_Path(t *testing.T) {
 	a.Equal("The default response of \"ping\"", root.Paths["/ping"].Get.Responses["200"].Description)
 	a.Equal("pong", root.Paths["/ping"].Get.Responses["200"].Content["text/plain"].Example)
 }
+
 func TestASTInterpreter_Models(t *testing.T) {
 	a := assert.New(t)
 
@@ -80,4 +81,24 @@ func TestASTInterpreter_Models(t *testing.T) {
 	a.Equal("object", aliasedSub.Type)
 	a.Equal("string", aliasedSub.Properties["timeField"].Type)
 	a.Equal("date-time", aliasedSub.Properties["timeField"].Format)
+}
+
+func TestASTInterpreter_Parameter(t *testing.T) {
+	a := assert.New(t)
+
+	file, openError := os.Open("./_test_files/func_with_parameter.go")
+	a.NoError(openError)
+
+	root := models.Root{}
+	interpreter := &interpret.ASTInterpreter{}
+	a.NoError(interpreter.InterpretFile(file, &root))
+	parameter := root.Components.Parameters["ConstParamName"]
+	a.Equal("constParamName", parameter.Name)
+	a.Equal("path", parameter.In)
+	a.Equal("some text", parameter.Content["text/plain"].Example)
+
+	parameter = root.Components.Parameters["VarParamName"]
+	a.Equal("varParamName", parameter.Name)
+	a.Equal("query", parameter.In)
+	a.Equal("some text", parameter.Content["text/plain"].Example)
 }

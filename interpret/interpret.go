@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -60,6 +61,8 @@ func openAPIBlockFromGenDeclaration(genDecl *ast.GenDecl, root *models.Root) {
 	switch genDecl.Tok {
 	case token.TYPE:
 		openAPIBlockFromTypeDeclaration(genDecl, root)
+	case token.CONST, token.VAR:
+		openAPIBlockFromConstAndVarDeclaration(genDecl, root)
 	}
 }
 
@@ -74,6 +77,36 @@ func openAPIBlockFromTypeDeclaration(decl *ast.GenDecl, root *models.Root) {
 			openAPIBlockFromTypeSpec(spec.(*ast.TypeSpec), root)
 		}
 	}
+}
+
+func openAPIBlockFromConstAndVarDeclaration(decl *ast.GenDecl, root *models.Root) error {
+	cleanedComment := cleanComment(decl.Doc.Text())
+	if !strings.HasPrefix(cleanedComment, "gopenapi:parameter") {
+		return nil
+	}
+	if root.Components == nil {
+		root.Components = &models.Components{}
+	}
+	if root.Components.Parameters == nil {
+		root.Components.Parameters = map[string]*models.Parameter{}
+	}
+	cleanedComment = strings.TrimPrefix(cleanedComment, "gopenapi:parameter")
+	spec := decl.Specs[0]
+	valueSpec := spec.(*ast.ValueSpec)
+	parameter := models.Parameter{}
+	root.Components.Parameters[valueSpec.Names[0].Name] = &parameter
+	basicLit := valueSpec.Values[0].(*ast.BasicLit)
+	unquoted, unquoteError := strconv.Unquote(basicLit.Value)
+	if unquoteError != nil {
+		return unquoteError
+	}
+	parameter.Name = unquoted
+
+	err := yaml.NewDecoder(strings.NewReader(cleanedComment)).Decode(&parameter)
+	if err != nil {
+		return fmt.Errorf("failed to decode comment:\n%s\nError: %w", cleanedComment, err)
+	}
+	return nil
 }
 
 func openAPIBlockFromTypeSpec(typeSpec *ast.TypeSpec, root *models.Root) {
